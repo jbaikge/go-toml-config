@@ -63,48 +63,56 @@ type ConfigSet struct {
 // Bool defines a bool config variable with a given name and default value for
 // a ConfigSet.
 func (c *ConfigSet) Bool(name string, value bool) *bool {
+	flag.Bool(name, value, "")
 	return c.FlagSet.Bool(name, value, "")
 }
 
 // Int defines a int config variable with a given name and default value for a
 // ConfigSet.
 func (c *ConfigSet) Int(name string, value int) *int {
+	flag.Int(name, value, "")
 	return c.FlagSet.Int(name, value, "")
 }
 
 // Int64 defines a int64 config variable with a given name and default value
 // for a ConfigSet.
 func (c *ConfigSet) Int64(name string, value int64) *int64 {
+	flag.Int64(name, value, "")
 	return c.FlagSet.Int64(name, value, "")
 }
 
 // Uint defines a uint config variable with a given name and default value for
 // a ConfigSet.
 func (c *ConfigSet) Uint(name string, value uint) *uint {
+	flag.Uint(name, value, "")
 	return c.FlagSet.Uint(name, value, "")
 }
 
 // Uint64 defines a uint64 config variable with a given name and default value
 // for a ConfigSet.
 func (c *ConfigSet) Uint64(name string, value uint64) *uint64 {
+	flag.Uint64(name, value, "")
 	return c.FlagSet.Uint64(name, value, "")
 }
 
 // String defines a string config variable with a given name and default value
 // for a ConfigSet.
 func (c *ConfigSet) String(name string, value string) *string {
+	flag.String(name, value, "")
 	return c.FlagSet.String(name, value, "")
 }
 
 // Float64 defines a float64 config variable with a given name and default
 // value for a ConfigSet.
 func (c *ConfigSet) Float64(name string, value float64) *float64 {
+	flag.Float64(name, value, "")
 	return c.FlagSet.Float64(name, value, "")
 }
 
 // Duration defines a time.Duration config variable with a given name and
 // default value.
 func (c *ConfigSet) Duration(name string, value time.Duration) *time.Duration {
+	flag.Duration(name, value, "")
 	return globalConfig.FlagSet.Duration(name, value, "")
 }
 
@@ -128,6 +136,15 @@ func (c *ConfigSet) Parse(path string) error {
 		return err
 	}
 
+	// Parse commandline overrides
+	flag.Visit(func(f *flag.Flag) {
+		cFlag := c.Lookup(f.Name)
+		if cFlag == nil {
+			// Flag is not managed by config
+			return
+		}
+		cFlag.Value.Set(f.Value.String())
+	})
 	return nil
 }
 
@@ -186,7 +203,12 @@ func NewConfigSet(name string, errorHandling flag.ErrorHandling) *ConfigSet {
 
 // -- globalConfig
 
-var globalConfig = NewConfigSet(os.Args[0], flag.ExitOnError)
+var (
+	globalConfig  = NewConfigSet(os.Args[0], flag.ExitOnError)
+	PrintDefaults = globalConfig.PrintDefaults
+	Visit         = globalConfig.Visit
+	VisitAll      = globalConfig.VisitAll
+)
 
 // Bool defines a bool config variable with a given name and default value.
 func Bool(name string, value bool) *bool {
